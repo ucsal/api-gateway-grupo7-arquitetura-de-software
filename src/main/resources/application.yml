@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # Rotas públicas do auth-service (sem JWT)
+        - id: auth-login
+          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/auth/login
+          filters:
+            - RewritePath=/auth/login, /auth/login
+
+        - id: auth-validate
+          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/auth/validate
+
+        # Rotas protegidas do auth-service (com JWT)
+        - id: auth-me
+          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/auth/me
+          filters:
+            - name: JwtAuthFilter
+
+        - id: auth-register
+          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/auth/register
+          filters:
+            - name: JwtAuthFilter
+
+        # Todas as rotas do monolito (com JWT)
+        - id: gestao-academica
+          uri: http://localhost:${MONOLITH_PORT:8082}
+          predicates:
+            - Path=/api/**
+          filters:
+            - name: JwtAuthFilter
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# JWT (mesmo secret do auth-service)
+jwt:
+  secret: ${JWT_SECRET}
+
+# Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+# CORS
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+# Desabilita discovery via Eureka nas rotas (usamos URI fixo por simplicidade)
+spring.cloud.gateway.discovery.locator.enabled: false
