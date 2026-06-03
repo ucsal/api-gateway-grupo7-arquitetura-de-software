@@ -4,50 +4,70 @@ spring:
   cloud:
     gateway:
       routes:
-        # Rotas públicas do auth-service (sem JWT)
+        # PUBLIC — sem JWT
         - id: auth-login
           uri: http://localhost:${AUTH_SERVICE_PORT:8081}
           predicates:
-            - Path=/auth/login
-          filters:
-            - RewritePath=/auth/login, /auth/login
-
-        - id: auth-validate
-          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
-          predicates:
-            - Path=/auth/validate
-
-        # Rotas protegidas do auth-service (com JWT)
-        - id: auth-me
-          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
-          predicates:
-            - Path=/auth/me
-          filters:
-            - name: JwtAuthFilter
+            - Path=/api/auth/login
 
         - id: auth-register
           uri: http://localhost:${AUTH_SERVICE_PORT:8081}
           predicates:
-            - Path=/auth/register
+            - Path=/api/auth/register
+
+        - id: auth-validate
+          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/api/auth/validate
+
+        # auth-service — protegido
+        - id: auth-service
+          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/api/auth/**, /api/users/**
           filters:
             - name: JwtAuthFilter
 
-        # Todas as rotas do monolito (com JWT)
-        - id: gestao-academica
-          uri: http://localhost:${MONOLITH_PORT:8082}
+        # ms-pessoas — strip /api (MS não tem prefixo /api)
+        - id: ms-pessoas
+          uri: http://localhost:${MS_PESSOAS_PORT:8083}
           predicates:
-            - Path=/api/**
+            - Path=/api/alunos/**, /api/professores/**
+          filters:
+            - name: JwtAuthFilter
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+
+        # ms-academico — já usa /api
+        - id: ms-academico
+          uri: http://localhost:${MS_ACADEMICO_PORT:8082}
+          predicates:
+            - Path=/api/cursos/**, /api/disciplinas/**, /api/escolas/**, /api/ies/**, /api/matrizes/**, /api/matriz-disciplinas/**
+          filters:
+            - name: JwtAuthFilter
+
+        # ms-turmas — strip /api (MS não tem prefixo /api)
+        - id: ms-turmas
+          uri: http://localhost:${MS_TURMAS_PORT:8085}
+          predicates:
+            - Path=/api/turmas/**, /api/espacos-fisicos/**
+          filters:
+            - name: JwtAuthFilter
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+
+        # ms-solicitacoes — já usa /api
+        - id: ms-solicitacoes
+          uri: http://localhost:${MS_SOLICITACOES_PORT:8084}
+          predicates:
+            - Path=/api/solicitacoes/**
           filters:
             - name: JwtAuthFilter
 
 server:
   port: ${SERVER_PORT:8080}
 
-# JWT (mesmo secret do auth-service)
 jwt:
   secret: ${JWT_SECRET}
 
-# Eureka
 eureka:
   client:
     service-url:
@@ -55,10 +75,8 @@ eureka:
   instance:
     prefer-ip-address: true
 
-# CORS
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
 
-# Desabilita discovery via Eureka nas rotas (usamos URI fixo por simplicidade)
 spring.cloud.gateway.discovery.locator.enabled: false

@@ -46,4 +46,14 @@ public class JwtUtil {
         Object role = extractAllClaims(token).get("role");
         return role == null ? "" : role.toString();
     }
+
+    public String extractUserId(String token) {
+        Object userId = extractAllClaims(token).get("userId");
+        return userId == null ? "" : userId.toString();
+    }
+
+    public String extractMatricula(String token) {
+        Object matricula = extractAllClaims(token).get("matricula");
+        return matricula == null ? "" : matricula.toString();
+    }
 }

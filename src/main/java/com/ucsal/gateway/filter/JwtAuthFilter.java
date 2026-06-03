@@ -34,14 +34,18 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
                 return unauthorized(exchange);
             }
 
-            // Injeta headers para os microserviços downstream não precisarem revalidar
             String username = jwtUtil.extractUsername(token);
             String role = jwtUtil.extractRole(token);
+            String userId = jwtUtil.extractUserId(token);
+            String matricula = jwtUtil.extractMatricula(token);
 
             ServerWebExchange mutatedExchange = exchange.mutate()
                     .request(r -> r
                             .header("X-Auth-Username", username)
-                            .header("X-Auth-Role", role))
+                            .header("X-Auth-Role", role)
+                            .header("X-User-Id", userId)
+                            .header("X-User-Role", role)
+                            .header("X-User-Matricula", matricula))
                     .build();
 
             return chain.filter(mutatedExchange);
