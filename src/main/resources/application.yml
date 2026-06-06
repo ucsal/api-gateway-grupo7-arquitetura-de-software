@@ -3,6 +3,14 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:4200"
+            allowedMethods: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+            allowedHeaders: "*"
+            exposedHeaders: "Authorization"
+            allowCredentials: true
       routes:
         # PUBLIC — sem JWT
         - id: auth-login
@@ -28,16 +36,15 @@ spring:
           filters:
             - name: JwtAuthFilter
 
-        # ms-pessoas — strip /api (MS não tem prefixo /api)
+        # ms-pessoas — usa /api
         - id: ms-pessoas
           uri: http://localhost:${MS_PESSOAS_PORT:8083}
           predicates:
             - Path=/api/alunos/**, /api/professores/**
           filters:
             - name: JwtAuthFilter
-            - RewritePath=/api/(?<segment>.*), /$\{segment}
 
-        # ms-academico — já usa /api
+        # ms-academico — ja usa /api
         - id: ms-academico
           uri: http://localhost:${MS_ACADEMICO_PORT:8082}
           predicates:
@@ -45,20 +52,37 @@ spring:
           filters:
             - name: JwtAuthFilter
 
-        # ms-turmas — strip /api (MS não tem prefixo /api)
+        # ms-turmas — usa /api
         - id: ms-turmas
           uri: http://localhost:${MS_TURMAS_PORT:8085}
           predicates:
             - Path=/api/turmas/**, /api/espacos-fisicos/**
           filters:
             - name: JwtAuthFilter
-            - RewritePath=/api/(?<segment>.*), /$\{segment}
 
-        # ms-solicitacoes — já usa /api
+        # rota especifica: processar solicitacoes → ms-turmas (antes da rota geral)
+        - id: solicitacoes-processar
+          uri: http://localhost:${MS_TURMAS_PORT:8085}
+          predicates:
+            - Path=/api/solicitacoes/processar
+            - Method=POST
+          filters:
+            - RewritePath=/api/solicitacoes/processar, /api/turmas/processar
+            - name: JwtAuthFilter
+
+        # ms-solicitacoes — ja usa /api
         - id: ms-solicitacoes
           uri: http://localhost:${MS_SOLICITACOES_PORT:8084}
           predicates:
             - Path=/api/solicitacoes/**
+          filters:
+            - name: JwtAuthFilter
+
+        # ms-academico — relatorios (agregador)
+        - id: ms-relatorios
+          uri: http://localhost:${MS_ACADEMICO_PORT:8082}
+          predicates:
+            - Path=/api/relatorios/**
           filters:
             - name: JwtAuthFilter
 

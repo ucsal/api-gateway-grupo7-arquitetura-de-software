@@ -34,6 +34,7 @@ public class JwtUtil {
             Claims claims = extractAllClaims(token);
             return !claims.getExpiration().before(new Date());
         } catch (JwtException | IllegalArgumentException e) {
+            System.err.println("[JwtUtil] Token inválido: " + e.getMessage());
             return false;
         }
     }
